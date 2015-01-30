@@ -16,10 +16,10 @@ save(my_oauth, file = "my_oauth.Rdata")
 #Function to remove links, RT, @names
 clean_links = function(x) {
   y = unlist(strsplit(x, "\\s+"))
-  paste(y[!grepl("@|\\.com|\\.org|http|RT|-", y)], collapse = " ")
+  paste(y[!grepl("@|\\.com|\\.org|http|RT|-", y)], collapse = " ") # Change arguments of grepl to filter different targets
 }
 
-#remove trailing / leading white space
+#remove trailing / leading white space, currently unused by may be useful
 trim <- function (x) gsub("^\\s+|\\s+$", "", x)
 
 #Downloading Tweets By Key Word and Filtering
@@ -30,13 +30,13 @@ filterStream("tweets.json", track = c("Obama", "Biden"), timeout = 10,
 
 # Filtering
 tweets.df <- parseTweets("tweets.json", simplify = FALSE)
-trimmed_tweets = select(tweets.df, text, time_zone, lang)
-geo_tweets = filter(trimmed_tweets, time_zone != "<NA>", lang == "en")
-geo_tweets$text = sub("&amp;#039;", "'", geo_tweets$text)
-text = unlist(lapply(geo_tweets$text, clean_links))
+trimmed_tweets = select(tweets.df, text, time_zone, lang)    #Different arguments to select for different variables in table
+geo_tweets = filter(trimmed_tweets, time_zone != "<NA>", lang == "en") #Filter by multiple arguments combines by & operator
+geo_tweets$text = sub("&amp;#039;", "'", geo_tweets$text) #Currently substitues code for apostrophe with an apostrophe, may do more later
+text = unlist(lapply(geo_tweets$text, clean_links)) #Removes all links, RT
 linkless_tweets = data.frame(text, geo_tweets[,-1])
 
-#Downloading Tweets by location
+#Downloading Tweets by location, for Stat 479
 library(zipcode)
 library(streamR)
 load("my_oauth.Rdata")
@@ -45,7 +45,7 @@ filterStream("tweetsUS.json", locations = c(-125, 25, -66, 50), timeout = 300,
 
 #filtering
 tweets.zip <- parseTweets("tweetsUS.json")
-located_tweets = tweets.zip %>% select(text, lat, lon) %>% filter(lat != "NA", lon != "NA")
+located_tweets = tweets.zip %>% select(text, lat, lon) %>% filter(lat != "NA", lon != "NA") #tweets.zip %>% select(stuff) == select(tweets.zip, stuff)
 zipcodeplace = select(zipcode,zip, latitude, longitude)
 zip = rep(0, length(located_tweets[,2]))  #Future list of zip codes
 ziplocs = data.matrix(zipcodeplace[,2:3]) #List of zip code lat/lon
@@ -57,5 +57,5 @@ for(j in 1:numtweets) {
   zip[j] = zipcodeplace[which.min(distances), 1]   # 1 for zip code column
 }
 
-#find closest point
+#find distance between two matrices of points
 euc.dist <- function(x1, x2) sqrt(rowSums((x1 - x2) ^ 2))
