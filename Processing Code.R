@@ -103,7 +103,7 @@ located_tweets[i] <- lapply(located_tweets[i], as.character)
 areas = readShapeSpatial("cb_2013_us_zcta510_500k.shp")
 
 #Convert the lon/lat points to coords
-points = located_tweets[,c(2:3)]
+points = data.frame(located_tweets$lon, located_tweets$lat)
 points = SpatialPoints(points)
 
 #Overlay the points into the polygons, mapping the coordinates to zip codes
