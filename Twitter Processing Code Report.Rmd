@@ -1,0 +1,32 @@
+---
+title: "Twitter Processing Code"
+author: "Robert Turner"
+date: "March 5, 2015"
+output: html_document
+---
+```{r global_options, include = FALSE}
+knitr::opts_chunk$set(fig.width=5, fig.height=5, fig.align = 'center', message = FALSE, eval = FALSE)
+library(streamR)
+```
+# Usage of Twitter Processing Code:
+## Three Main Functions:
+1. clean.tweets(tweets)
+Does the major processing work on the text. Removes symbols, emoticons, links, and prepares the text for topic modeling. Also processes the date into a correct format if needed.  
+  
+2. locate.tweets(tweets)
+Assigns each tweet a zip code based on its given lattitude / longitude. Only works on geo-located tweets.  
+  
+3. process.tweets(tweets, variables, languages)
+Selects the desired variables / languages of tweets, and does all processing work. Assigns zip codes if possible.
+Example:
+```{r}
+tweets.df = parseTweets("tweets.json", simplify = FALSE)
+tweets = process.tweets(tweets.df, vars = c("text", "lang", "created_at"), lan = c("en", "fr"))
+```
+```{r, echo = FALSE, eval = TRUE}
+load("fudge.Rdata")
+head(tweets$text)
+head(tweets$lang)
+head(tweets$created_at)
+```
+
