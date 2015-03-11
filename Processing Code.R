@@ -2,36 +2,56 @@
 
 #Function to remove links, RT, @names
 clean_links = function(x) {
+  x = as.character(x)
   y = unlist(strsplit(x, "\\s+"))
-  paste(y[!grepl("@|\\.com|\\.org|http|RT|-", y)], collapse = " ") #Change these to remove different links
+  x = paste(y[!grepl("@|\\.com|\\.org|http|RT|-", y)], collapse = " ") #Change these to remove different links
+  x = gsub("&|/", " ", x) 
+  x = gsub("[[:punct:]]", "", x)
 }
 
 #filter html code and emoticons
 filter.h = function(x) {
+  x = as.character(x)
   x = sub("&amp;#039;", "'", x)
   x = sub("&amp;", "&", x)
   x = iconv(x, "latin1", "ASCII", sub = "")
+  x = gsub("#|_|:|\"|,|'","",x)
+  x = gsub("|", "", x, fixed = TRUE)
+  x = gsub(".", "", x, fixed = TRUE)
 }
+
+trim <- function (x) gsub("^\\s+|\\s+$", "", x) 
 
 # Remove extra information from dates and sort them
 clean_dates = function(x) {
   x = paste(x[c(2,3,6,4)], collapse = ".")
 }
 
+mywhich <- function(word.vector, stoplist) {
+  word.vector = word.vector[!(word.vector %in% stoplist)]
+  word.vector[which(word.vector != "")]
+}
+
+
 #Functions
 
 #Variables must be selected before calling this
-clean.tweets = function(tweets.df) {
+clean.tweets = function(tweets.df, tz) {
+english.stoplist <- scan("http://bridge.library.wisc.edu/jockersStopList.txt", what = "character")
+aa <- strsplit(english.stoplist, ",")
+english.stoplist <- sapply(X = aa, FUN = function(x) { x[[1]] }) 
 library(dplyr)
 geo_tweets = tweets.df
 
-if(!is.null(tweets.df$time_zone)) {
+if(!is.null(tweets.df$time_zone) & tz) {
   geo_tweets = filter(tweets.df, time_zone != "<NA>") 
 }
 
 #Filter links and html codes from text
 geo_tweets$text = filter.h(geo_tweets$text) 
 text = unlist(lapply(geo_tweets$text, clean_links))
+text = trim(text)
+text = tolower(text)
 geo_tweets$text = text
 linkless_tweets = geo_tweets
 
@@ -40,10 +60,11 @@ linkless_tweets$text <- unlist(lapply(linkless_tweets$text, as.character))
 
 #Split the tweets into characters
 linkless_tweets$text = strsplit(linkless_tweets$text, " ")
+linkless_tweets$text = lapply(linkless_tweets$text, mywhich, english.stoplist)
 
 #Converting Time stamps into R standard
 if(!is.null(linkless_tweets$created_at)) {
-word_dates = strsplit(linkless_tweets$created_at, " ")
+word_dates = strsplit(as.character(linkless_tweets$created_at), " ")
 word_dates = sapply(word_dates, clean_dates)
 word_dates = gsub(":", ".", word_dates)
 num_dates = as.POSIXct(strptime(word_dates, "%B.%d.%Y.%H.%M.%OS", tz = "GMT"))
@@ -97,17 +118,17 @@ wisconsin_tweets = filter(zipped_tweets, zip >= low & zip <= high)
 return(wisconsin_tweets)
 }
 
-process.tweets = function(tweets.df, vars = c("text", "created_at", "lang", "time_zone", "lat", "lon"), lan = "en") {
-  
+process.tweets = function(tweets.df, vars = c("text", "created_at", "lang", "time_zone", "lat", "lon"), lan = "en", zip = FALSE, tz = FALSE) {
+
   tweets = subset(tweets.df, select = vars)
   
 if("lang" %in% vars) {
   tweets = filter(tweets, lang %in% lan)
 }
 
-  tweets = clean.tweets(tweets)
+  tweets = clean.tweets(tweets, tz)
 
-if("lat" %in% vars & "lon" %in% vars) {
+if("lat" %in% vars & "lon" %in% vars & zip) {
   tweets = locate.tweets(tweets)
 }
 
