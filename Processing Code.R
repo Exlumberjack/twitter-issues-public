@@ -118,11 +118,11 @@ wisconsin_tweets = filter(zipped_tweets, zip >= low & zip <= high)
 return(wisconsin_tweets)
 }
 
-process.tweets = function(tweets.df, vars = c("text", "created_at", "lang", "time_zone", "lat", "lon"), lan = "en", zip = FALSE, tz = FALSE) {
+process.tweets = function(tweets.df, vars = c("text", "created_at", "lang", "time_zone", "lat", "lon"), lan = "en", zip = FALSE, tz = FALSE, flan = TRUE) {
 
   tweets = subset(tweets.df, select = vars)
   
-if("lang" %in% vars) {
+if("lang" %in% vars & flan) {
   tweets = filter(tweets, lang %in% lan)
 }
 
@@ -135,4 +135,4 @@ if("lat" %in% vars & "lon" %in% vars & zip) {
   return(tweets)
 }
 
-save(clean_dates, clean_links, clean.tweets, filter.h, filter.zips, locate.tweets, process.tweets, file = "twitterFunctions.Rdata")
+save(clean_dates, clean_links, clean.tweets, filter.h, filter.zips, locate.tweets, process.tweets, trim, mywhich, file = "twitterFunctions.Rdata")
