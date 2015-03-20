@@ -42,7 +42,7 @@ clean.tweets = function(tweets.df, tz, english.stoplist) {
 geo_tweets = tweets.df
 
 if(!is.null(tweets.df$time_zone) & tz) {
-  geo_tweets = filter(tweets.df, time_zone != "<NA>") 
+  geo_tweets = filter(tweets.df, time_zone != "<NA>")    #CHANGE HERE, put time_zone == "Central Time (US & Canada)" or other time zones
 }
 
 #Filter links and html codes from text
@@ -136,7 +136,7 @@ if("lat" %in% vars & "lon" %in% vars & zip) {
   return(tweets)
 }
 
-#Breakdown strings into word vector, look into LDA, pablo article
+#Breakdown strings into one large word vector, look into LDA, pablo article, SQL
 process.files = function(tweetdir, outputdir, consoleout = FALSE) {
 filenames = dir(tweetdir)
 load("twitterFunctions.Rdata")
@@ -154,7 +154,7 @@ load("twitterFunctions.Rdata")
 for(i in 1:length) {
   filename = filenames[i]
   tweets.df = read.csv(paste(tweetdir, filename, sep = "/"), header = T, fileEncoding = "latin1")
-  etweets.df = process.tweets(tweets.df, tz = TRUE, stoplist = "")
+  etweets.df = process.tweets(tweets.df, tz = TRUE, stoplist = "")    #CHANGE HERE Arguments to clean tweets
   write.csv(x = etweets.df, file = paste(paste(outputdir, filename, sep = "/"), "e", sep = ""), row.names = FALSE)
 }
 
