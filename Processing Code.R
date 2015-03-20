@@ -14,6 +14,8 @@ filter.h = function(x) {
   x = as.character(x)
   x = sub("&amp;#039;", "'", x)
   x = sub("&amp;", "&", x)
+  x = sub("&gt;", ">", x)
+  x = sub("&lt;", "<", x)
   x = iconv(x, "latin1", "ASCII", sub = "")
   x = gsub("#|_|:|\"|,|'","",x)
   x = gsub("|", "", x, fixed = TRUE)
@@ -36,11 +38,7 @@ mywhich <- function(word.vector, stoplist) {
 #Functions
 
 #Variables must be selected before calling this
-clean.tweets = function(tweets.df, tz) {
-english.stoplist <- scan("http://bridge.library.wisc.edu/jockersStopList.txt", what = "character")
-aa <- strsplit(english.stoplist, ",")
-english.stoplist <- sapply(X = aa, FUN = function(x) { x[[1]] }) 
-library(dplyr)
+clean.tweets = function(tweets.df, tz, english.stoplist) {
 geo_tweets = tweets.df
 
 if(!is.null(tweets.df$time_zone) & tz) {
@@ -58,9 +56,10 @@ linkless_tweets = geo_tweets
 #convert factor back to character for future splitting
 linkless_tweets$text <- unlist(lapply(linkless_tweets$text, as.character))
 
-#Split the tweets into characters
+#Split the tweets into characters and remove stopwords
 linkless_tweets$text = strsplit(linkless_tweets$text, " ")
 linkless_tweets$text = lapply(linkless_tweets$text, mywhich, english.stoplist)
+linkless_tweets$text = unlist(lapply(linkless_tweets$text, paste, collapse = " "))
 
 #Converting Time stamps into R standard
 if(!is.null(linkless_tweets$created_at)) {
@@ -83,7 +82,12 @@ if(is.null(located_tweets$lat) || is.null(located_tweets$lon)) {
   print("Error, can't assign zip codes to tweets with no geo tags")
   return(NULL)
 }
-
+temp = filter(located_tweets, lon != "NA", lat != "NA")
+if(nrow(temp) == 0) {
+  print("Error, all tweets non-geolocated")
+  return(located_tweets)
+}
+located_tweets = temp
 #ShapeFile Assignment: More accurate and now done! 
 
 #Shapefile from https://www.census.gov/geo/maps-data/data/cbf/cbf_zcta.html Every file in the folder is part of the shapefile
@@ -91,12 +95,7 @@ if(is.null(located_tweets$lat) || is.null(located_tweets$lon)) {
 areas = readShapeSpatial("cb_2013_us_zcta510_500k.shp")
 
 #Convert the lon/lat points to coords
-temp = filter(located_tweets, lon != "NA", lat != "NA")
-if(nrow(temp) == 0) {
-  print("Error, all tweets non-geolocated")
-  return(located_tweets)
-}
-located_tweets = temp
+
 
 points = data.frame(located_tweets$lon, located_tweets$lat)
 points = SpatialPoints(points)
@@ -113,20 +112,22 @@ return(zipped_tweets)
 
 #Filter Zip codes to codes only in a region
 filter.zips = function(zipped_tweets, low, high) {
-zipped_tweets$zip = as.numeric(zipped_tweets$zip)
+zipped_tweets$zip = as.numeric(as.character(zipped_tweets$zip))
 wisconsin_tweets = filter(zipped_tweets, zip >= low & zip <= high)
 return(wisconsin_tweets)
 }
 
-process.tweets = function(tweets.df, vars = c("text", "created_at", "lang", "time_zone", "lat", "lon"), lan = "en", zip = FALSE, tz = FALSE, flan = TRUE) {
-
+process.tweets = function(tweets.df, vars = c("text", "created_at", "lang", "time_zone", "lat", "lon"), stoplist = "", 
+                          lan = "en", zip = FALSE, tz = FALSE, flan = TRUE) {
+  library(plyr)
+  library(dplyr)
   tweets = subset(tweets.df, select = vars)
   
 if("lang" %in% vars & flan) {
   tweets = filter(tweets, lang %in% lan)
 }
 
-  tweets = clean.tweets(tweets, tz)
+  tweets = clean.tweets(tweets, tz, stoplist)
 
 if("lat" %in% vars & "lon" %in% vars & zip) {
   tweets = locate.tweets(tweets)
@@ -135,4 +136,38 @@ if("lat" %in% vars & "lon" %in% vars & zip) {
   return(tweets)
 }
 
-save(clean_dates, clean_links, clean.tweets, filter.h, filter.zips, locate.tweets, process.tweets, trim, mywhich, file = "twitterFunctions.Rdata")
+#Breakdown strings into word vector, look into LDA, pablo article
+process.files = function(tweetdir, outputdir, consoleout = FALSE) {
+filenames = dir(tweetdir)
+load("twitterFunctions.Rdata")
+filenames = dir(tweetdir)
+editedfns = paste(filenames, "e", sep = "")
+existing = dir(outputdir)
+if(length(existing) > 0) {
+filenames = filenames[-which(editedfns %in% existing)]
+}
+length = length(filenames)
+if(length == 0) {
+  return("Tweet Editing Up To Date")
+}
+load("twitterFunctions.Rdata")
+for(i in 1:length) {
+  filename = filenames[i]
+  tweets.df = read.csv(paste(tweetdir, filename, sep = "/"), header = T, fileEncoding = "latin1")
+  etweets.df = process.tweets(tweets.df, tz = TRUE, stoplist = "")
+  write.csv(x = etweets.df, file = paste(paste(outputdir, filename, sep = "/"), "e", sep = ""), row.names = FALSE)
+}
+
+df = read.csv(paste(paste(outputdir, filenames[1], sep = "/"), "e", sep = ""), header = T)
+output = rep("", length(filenames))
+output[1] = filenames[1]
+for(i in 2:length) {
+  df = rbind(read.csv(paste(paste(outputdir, filenames[i], sep = "/"), "e", sep = ""), header = TRUE), df)
+  output[i] = filenames[i]
+}
+if(consoleout) {
+return(output)
+}
+}
+
+save(clean_dates, clean_links, clean.tweets, filter.h, filter.zips, locate.tweets, process.tweets, process.files, trim, mywhich, file = "twitterFunctions.Rdata")
