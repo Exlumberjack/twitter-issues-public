@@ -136,7 +136,8 @@ if("lat" %in% vars & "lon" %in% vars & zip) {
   return(tweets)
 }
 
-#Breakdown strings into one large word vector, look into LDA, pablo article, SQL
+#Breakdown strings into one large word vector, look into LDA, pablo article, SQL, filter by english dictionary
+# 2003, mixed model on google drive
 process.files = function(tweetdir, outputdir, consoleout = FALSE) {
 filenames = dir(tweetdir)
 load("twitterFunctions.Rdata")
@@ -153,16 +154,15 @@ if(length == 0) {
 load("twitterFunctions.Rdata")
 for(i in 1:length) {
   filename = filenames[i]
-  tweets.df = read.csv(paste(tweetdir, filename, sep = "/"), header = T, fileEncoding = "latin1")
+  if(file.info(paste(tweetdir, filename, sep = ""))$size != 0) {
+  tweets.df = read.csv(paste(tweetdir, filename, sep = ""), header = T, fileEncoding = "latin1")
   etweets.df = process.tweets(tweets.df, tz = TRUE, stoplist = "")    #CHANGE HERE Arguments to clean tweets
   write.csv(x = etweets.df, file = paste(paste(outputdir, filename, sep = "/"), "e", sep = ""), row.names = FALSE)
+  }
 }
-
-df = read.csv(paste(paste(outputdir, filenames[1], sep = "/"), "e", sep = ""), header = T)
 output = rep("", length(filenames))
 output[1] = filenames[1]
 for(i in 2:length) {
-  df = rbind(read.csv(paste(paste(outputdir, filenames[i], sep = "/"), "e", sep = ""), header = TRUE), df)
   output[i] = filenames[i]
 }
 if(consoleout) {
