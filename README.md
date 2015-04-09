@@ -7,3 +7,9 @@
 - [ ] make a Makefile to automate analysis.
 - [ ] elaborate examples to make a full vignette
 - [ ] put Robert's functions (and a small data set) into a R package. 
+- [ ] add to this repo Fred's vignette on how to query twitter from R. 
+
+
+## Completed To-do's
+
+
