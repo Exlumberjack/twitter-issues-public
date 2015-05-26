@@ -1,0 +1,10 @@
+TODO:
+  
+SQL Database
+Choose events to download tweets
+Update problems Fred/Bret has with package
+
+
+Open Questions:
+  
+Is there any political topic / idea were looking for in particular? Or just things people will tweet about
