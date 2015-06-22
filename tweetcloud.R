@@ -37,8 +37,8 @@ dtm = DocumentTermMatrix(corp)
 perplexities = matrix(, nrow = 10, ncol = 29)
 for(i in 1:10) {
   testIndices = which(folds==i,arr.ind=TRUE)
-  trainData = bigTDM[-testIndices,]
-  testData = bigTDM[testIndices,]
+  trainData = dtm[-testIndices,]
+  testData = dtm[testIndices,]
   
   trainData = removeSparseTerms(trainData, 0.99)
   rowTotals = apply(trainData, 1, sum)
@@ -52,7 +52,6 @@ for(i in 1:10) {
   
   for(k in 2:30) {
     fitted = LDA(trainData, k = k, method = "Gibbs")
-    save(fitted, file = paste("LDA", i, k, sep = "-"))
     perplexities[i,(k-1)] = perplexity(fitted, testData)
   }
 }
